@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ha-skills",
+  "description": "hajubal의 개인용 Claude Code 스킬 모음",
+  "owner": {
+    "name": "hajubal"
+  },
+  "plugins": [
+    {
+      "name": "ha-skills",
+      "description": "PR 작성과 코드 변경 심층 설명(HTML) 스킬 모음",
+      "author": {
+        "name": "hajubal"
+      },
+      "category": "development",
+      "source": "./plugins/ha-skills",
+      "homepage": "https://github.com/hajubal/ha-skills"
+    }
+  ]
+}

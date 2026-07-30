@@ -1,0 +1,9 @@
+{
+  "name": "ha-skills",
+  "version": "1.0.0",
+  "description": "PR 본문을 짧게 쓰고 상세 설명은 HTML/코멘트로 분리하는 PR 작성 스킬과, 코드 변경을 배경·직관·워크스루·퀴즈로 풀어내는 심층 설명 스킬.",
+  "author": {
+    "name": "hajubal"
+  },
+  "homepage": "https://github.com/hajubal/ha-skills"
+}
