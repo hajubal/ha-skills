@@ -86,6 +86,7 @@ BODY=<scratchpad>/pr-body.md   # 세션 스크래치패드 사용
 사용 가능한 스킬 목록에 없으면 이 파일 기준 상대 경로 `../explain-diff-html/SKILL.md`(플러그인 루트 기준 `${CLAUDE_PLUGIN_ROOT}/skills/explain-diff-html/SKILL.md`)를 읽고 그 지침을 그대로 수행한다.
 
 - 대상은 2단계에서 파악한 diff 범위(`$MB`..HEAD)다.
+- **퀴즈 섹션은 만들지 않는다.** explain-diff-html 지침의 Quiz 항목은 이 스킬에서 호출할 때 건너뛴다. PR 코멘트에서는 채점이 안 되고 리뷰어에게 필요한 정보도 아니다.
 - 파일 경로 규칙은 그 스킬의 지침을 따른다(오늘 날짜 `YYYY-MM-DD-` 접두사, 저장소 밖 경로).
 - 생성된 절대 경로를 기억해 둔다. 5단계에서 쓴다.
 - 비공개 저장소라면 5단계에서 이 내용을 Markdown으로 옮겨 PR 코멘트로 올린다. HTML 파일은 인터랙티브 원본으로 함께 남긴다.
@@ -108,7 +109,7 @@ BODY=<scratchpad>/pr-body.md   # 세션 스크래치패드 사용
 기본 동작:
 
 1. `gh repo view --json visibility`로 공개 여부를 확인한다.
-2. **비공개/내부 저장소 → A.** HTML 내용을 Markdown으로 옮겨 `gh pr comment`로 올린다. 다이어그램은 mermaid 코드블록, 퀴즈 정답은 `<details>`로 접어서 클릭 공개, 콜아웃은 `> [!NOTE]`로 바꾼다. 전체 인터랙티브 버전이 필요하면 HTML 경로를 함께 안내해 D로 첨부하게 한다.
+2. **비공개/내부 저장소 → A.** HTML 내용을 Markdown으로 옮겨 `gh pr comment`로 올린다. 다이어그램은 mermaid 코드블록, 콜아웃은 `> [!NOTE]`로 바꾼다. 전체 인터랙티브 버전이 필요하면 HTML 경로를 함께 안내해 D로 첨부하게 한다.
    외부 업로드(B·C)는 사용자가 명시적으로 허용했을 때만 한다. secret gist는 이름만 secret이고 URL을 아는 누구나 열 수 있다.
 3. **공개 저장소 → C.** HTML 원본을 그대로 즉시 렌더할 수 있다.
 4. 어느 방식을 썼는지, 공개 범위가 어떻게 되는지, 사용자가 직접 할 일이 남았는지 분명히 보고한다.
