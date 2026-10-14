@@ -16,7 +16,18 @@ claude plugin marketplace add hajubal/ha-skills
 claude plugin install ha-skills@ha-skills
 ```
 
-업데이트는 `/plugin update` 또는 `claude plugin marketplace update ha-skills`.
+## 업데이트
+
+마켓플레이스를 갱신한 뒤 플러그인을 업데이트하고, Claude Code를 재시작한다. 마켓플레이스 갱신만으로는 플러그인이 바뀌지 않는다.
+
+```bash
+claude plugin marketplace update ha-skills
+claude plugin update ha-skills@ha-skills
+```
+
+매번 하기 싫으면 `/plugin` → Marketplaces → ha-skills에서 자동 업데이트를 켠다(직접 추가한 마켓플레이스는 기본 꺼짐).
+
+> 배포하는 쪽: 스킬을 고치면 `plugins/ha-skills/.claude-plugin/plugin.json`의 `version`을 반드시 올린다. 버전이 같으면 사용자 쪽에서 업데이트로 인식하지 않는다.
 
 ## 포함된 스킬
 
