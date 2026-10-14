@@ -1,16 +1,16 @@
 ---
 name: pr
-description: Use when the user asks to create, write, update, or improve a pull request ("PR 올려줘", "PR 본문 써줘", "PR 설명 보강해줘", create/open a PR). Writes a short, scannable PR body (요약·배경·변경 요약·확인 포인트) and moves all detailed explanation into an explain-diff-html deep-dive posted as a PR comment. Opens PRs as draft.
+description: Use when the user asks to create, write, update, or improve a pull request ("PR 올려줘", "PR 본문 써줘", "PR 설명 보강해줘", create/open a PR). Writes a short, scannable PR body (요약·배경·변경 요약·확인 포인트). Adds an explain-diff-html deep-dive comment only when the user explicitly mentions it. Opens PRs as draft and requests review from every eligible collaborator.
 ---
 
 # PR 작성
 
-목표는 두 가지다.
+목표:
 
 1. **PR 본문 — 짧게**: 리뷰어가 30초 안에 "무엇을, 왜 바꿨고, 무엇을 봐줘야 하는지" 파악할 수 있는 요점만.
-2. **심층 설명 — 코멘트로**: `ha-skills:explain-diff-html` 스킬로 만든 상세 설명을 PR 코멘트(또는 링크)로 붙인다.
+2. **심층 설명 — 요청 시에만**: 사용자가 explain-diff-html(심층 설명, diff 설명, HTML 설명 등)을 **직접 언급했을 때만** `ha-skills:explain-diff-html` 스킬로 상세 설명을 만들어 PR 코멘트(또는 링크)로 붙인다. 언급이 없으면 4·5단계를 건너뛴다.
 
-**역할 분담이 이 스킬의 핵심이다.** 코드 워크스루, 파일별 해설, 데이터 흐름, 대안 검토 과정 같은 긴 설명은 **전부 심층 설명 쪽**이다. 본문에 옮겨 적지 않는다. 본문에 같은 내용을 반복하면 둘 다 안 읽힌다.
+코드 워크스루, 파일별 해설, 데이터 흐름, 대안 검토 과정 같은 긴 설명은 본문에 옮겨 적지 않는다. 심층 설명을 만들면 그쪽 몫이고, 안 만들면 그냥 생략한다.
 
 본문의 합격선은 "이것만 읽고도 리뷰를 시작할 수 있다"이지 "이것만 읽고도 전부 이해한다"가 아니다. 단, **승인 판단을 가르는 정보**(호환성 파괴, 배포 순서, 롤백, 보안·개인정보 영향)는 짧게라도 반드시 본문에 남긴다 — 코멘트에 묻히면 안 되는 종류다.
 
@@ -80,7 +80,9 @@ git diff "$MB"..HEAD
 BODY=<scratchpad>/pr-body.md   # 세션 스크래치패드 사용
 ```
 
-## 4. 심층 설명 HTML 생성
+## 4. 심층 설명 HTML 생성 (사용자가 언급했을 때만)
+
+사용자가 explain-diff-html·심층 설명을 언급하지 않았으면 이 단계와 5단계를 건너뛰고, 본문의 "상세 설명" 섹션도 지운다. 묻지도 말고 임의로 만들지도 않는다.
 
 `ha-skills:explain-diff-html` 스킬을 호출해서(Skill 도구, `skill: "ha-skills:explain-diff-html"`) 이 변경에 대한 HTML을 만든다.
 사용 가능한 스킬 목록에 없으면 이 파일 기준 상대 경로 `../explain-diff-html/SKILL.md`(플러그인 루트 기준 `${CLAUDE_PLUGIN_ROOT}/skills/explain-diff-html/SKILL.md`)를 읽고 그 지침을 그대로 수행한다.
@@ -91,7 +93,7 @@ BODY=<scratchpad>/pr-body.md   # 세션 스크래치패드 사용
 - 생성된 절대 경로를 기억해 둔다. 5단계에서 쓴다.
 - 비공개 저장소라면 5단계에서 이 내용을 Markdown으로 옮겨 PR 코멘트로 올린다. HTML 파일은 인터랙티브 원본으로 함께 남긴다.
 
-## 5. 리뷰어가 볼 수 있게 붙이기
+## 5. 리뷰어가 볼 수 있게 붙이기 (4단계를 했을 때만)
 
 전제 두 가지를 알고 골라야 한다(실측 근거는 `references/attachment.md`).
 
@@ -127,7 +129,12 @@ gh pr create --draft --base "$BASE" --title "<제목>" --body-file "$BODY" --ass
 # 기존
 gh pr edit <번호> --body-file "$BODY" --add-assignee @me
 
-# 심층 설명을 코멘트로 게시하고(A안), 그 URL을 본문 "상세 설명"에 반영
+# 리뷰 가능한 모든 사람에게 리뷰 요청 (본인 제외)
+ME=$(gh api user -q .login)
+REVIEWERS=$(gh api "repos/{owner}/{repo}/collaborators" --paginate -q ".[].login | select(. != \"$ME\")" | paste -sd, -)
+[ -n "$REVIEWERS" ] && gh pr edit <번호> --add-reviewer "$REVIEWERS"
+
+# (심층 설명을 만든 경우만) 코멘트로 게시하고(A안), 그 URL을 본문 "상세 설명"에 반영
 gh pr comment <번호> --body-file <심층설명.md>
 gh pr edit <번호> --body-file "$BODY"
 ```
@@ -135,8 +142,8 @@ gh pr edit <번호> --body-file "$BODY"
 - 푸시되지 않은 커밋이 있으면 `gh pr create`가 푸시를 물어본다. 사용자가 푸시를 요청하지 않았다면 먼저 확인한다.
 - 올리기 전에 `wc -l "$BODY"`로 분량을 확인한다. 40줄을 넘으면 넘긴 부분을 심층 설명으로 내리고 다시 줄인다(조건부 섹션 때문에 넘은 경우는 예외).
 - **신규 PR은 항상 draft(`--draft`)로 올린다.** 사용자가 "바로 리뷰 요청", "ready로", "draft 말고" 처럼 명시적으로 요구했을 때만 draft를 뺀다. 준비가 되면 사용자가 GitHub UI나 `gh pr ready <번호>`로 전환한다 — 임의로 ready 전환하지 않는다.
-- reviewer는 사용자가 지정하거나 CODEOWNERS가 있을 때만 `--reviewer`로 넣는다. 임의로 사람을 호출하지 않는다.
+- **reviewer는 리뷰 가능한 모든 사람(저장소 collaborator 전원, 본인 제외)에게 요청한다.** 신규·기존 PR 모두 적용. 사용자가 특정 리뷰어를 지정하면 그 지정을 따른다. collaborator 조회 권한이 없거나(403) 대상이 없으면 건너뛰고 보고한다.
 
 ## 7. 마무리 보고
 
-사용자에게 다음을 한 번에 알린다: PR URL, 본문에 넣은 섹션 요약, HTML 파일 경로와 첨부 방식(그리고 공개 범위), 사용자가 직접 해야 하는 남은 동작(zip 드래그, gist 공유 등), 그리고 본문에서 추측으로 채운 부분이 있다면 그 목록.
+사용자에게 다음을 한 번에 알린다: PR URL, 본문에 넣은 섹션 요약, 리뷰 요청한 사람 목록, (심층 설명을 만든 경우) HTML 파일 경로와 첨부 방식(그리고 공개 범위), 사용자가 직접 해야 하는 남은 동작(zip 드래그, gist 공유 등), 그리고 본문에서 추측으로 채운 부분이 있다면 그 목록.

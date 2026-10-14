@@ -22,10 +22,10 @@ claude plugin install ha-skills@ha-skills
 
 | 스킬 | 호출 이름 | 하는 일 |
 |---|---|---|
-| PR 작성 | `ha-skills:pr` | PR 본문은 40줄 이내로 짧게 쓰고, 코드 워크스루·대안 검토 같은 긴 설명은 심층 설명으로 분리해 PR 코멘트로 붙인다. 신규 PR은 항상 draft + assignee 본인. |
+| PR 작성 | `ha-skills:pr` | PR 본문은 40줄 이내로 짧게 쓴다. 심층 설명은 요청 시에만 PR 코멘트로 붙인다. 신규 PR은 항상 draft + assignee 본인 + 리뷰 가능한 전원에게 리뷰 요청. |
 | 심층 설명 | `ha-skills:explain-diff-html` | 코드 변경을 배경 → 직관 → 코드 워크스루 → 퀴즈 순서의 자체 완결형 HTML 한 장으로 만든다. |
 
-`pr` 스킬이 `explain-diff-html` 스킬을 호출하므로 둘은 한 플러그인에 함께 있다.
+`pr` 스킬은 사용자가 언급했을 때만 `explain-diff-html` 스킬을 호출한다.
 
 ## 구조
 
