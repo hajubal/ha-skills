@@ -92,7 +92,8 @@ project.md 는 **항상 `$root`(본체) 에서** 읽는다. worktree 는 기본 
 - 닫기 → 사유를 묻고 `gh issue close $issue -c "<사유>"` 전에 한 번 더 확인. `phase: done`.
 
 ### impl  (`phase: impl`) — 메인이 ponytail 모드로 직접 구현
-1. **worktree.** `worktree` 가 비어 있으면: `git fetch origin $base --quiet` 후 `EnterWorktree(name: "issue-$issue<-part 소문자>")`. 들어간 뒤 `git rev-parse --show-toplevel` 과 현재 브랜치를 상태 파일 `worktree`/`branch` 에 기록하고, 브랜치를 `<접두사>issue-$issue<-part>-<slug>` 로 `git branch -m` 한다(접두사는 project.md). 기본 브랜치에서 분기됐는지 `git merge-base --is-ancestor origin/$base HEAD` 로 확인.
+1. **worktree.** `worktree` 가 비어 있으면: 이미 다른 worktree 안이면(앞 PR 몫) 먼저 `ExitWorktree(action: "keep")` — worktree 안에서는 새 worktree 를 만들 수 없다. `git fetch origin $base --quiet` 후 `EnterWorktree(name: "issue-$issue<-part 소문자>")`. **`EnterWorktree` 는 레포 기본 브랜치가 아니라 `origin/HEAD`(보통 main)에서 분기한다.** 들어간 뒤 `git merge-base --is-ancestor origin/$base HEAD` 가 실패하면 커밋이 없으므로 `git reset --hard origin/$base` 로 맞춘다(커밋이 있으면 `git rebase origin/$base`). 브랜치를 `<접두사>issue-$issue<-part>-<slug>` 로 `git branch -m` 하고, worktree 경로와 브랜치를 상태 파일에 기록한다.
+   - worktree 세션에서는 Bash 가드가 "복잡한 명령"(heredoc 스크립트, 변수로 만든 PATH, 긴 `gh` 인자)을 거부한다. 상태 파일 갱신은 작은 스크립트 파일을 `python3 -I <파일> …` 로 부르고, 명령은 단순하게 쪼갠다. 본체 레포의 파일(project.md, 계획서)은 worktree 안에서 Edit 할 수 없다 — 계획서 자리표시자 갱신은 `ExitWorktree` 뒤에 한다.
 2. **구현.** 계획서를 Read 하고 이번 몫의 태스크를 순서대로 구현한다. 규칙:
    - 계획서의 "변경 파일 목록" 밖의 파일은 건드리지 않는다. 꼭 필요하면 왜 필요한지 커밋 메시지에 적고 verifier 가 Extra 로 잡을 것을 감수한다.
    - 테스트는 계획서가 지정한 파일·케이스를 추가한다. 기존 테스트의 단언을 지우거나 비활성화하지 않는다.
@@ -110,12 +111,12 @@ project.md 는 **항상 `$root`(본체) 에서** 읽는다. worktree 는 기본 
 ### review  (`phase: review`, 몫당 최대 2회)
 1. `loops.review += 1`. worktree 에서 `Skill(skill: "code-review", args: "--fix")` 를 실행한다. 리뷰어는 fresh 컨텍스트라 불변 규칙 2 를 만족한다.
 2. 적용된 수정이 있으면(`git status --short` 비어 있지 않음): 바뀐 디렉터리의 project.md 검증 명령(없으면 계획서 태스크의 `검증:` 명령)을 **메인이 직접** 다시 실행해 통과를 확인하고 `review: <한 줄>` 커밋. 통과하지 않으면 수정을 되돌리고(`git checkout -- .`) 그 finding 을 `unresolved` 에 적는다.
-3. finding 0 → `phase: pr`. finding 이 있었고 `loops.review < 2` → 1 로. 2회째 finding 이 1회째와 같으면(수렴) 잔여를 `unresolved` 에 넣고 `phase: pr`.
+3. finding 0 → `phase: pr`. finding 이 있었고 `loops.review < 2` → 1 로. 2회째 finding 의 과반이 1회째와 같으면(수렴) 잔여를 `unresolved` 에 넣고 `phase: pr`. 리뷰어는 계획서를 모르므로 "계획서가 이미 결정한 것"(범위 밖, 수용한 리스크, pre-existing)을 매번 다시 지적한다 — 라운드마다 `$runs/code-review-<part>-<n>.md` 에 지적별 처리(적용 / 계획 결정 / pre-existing / 사실과 다름)를 표로 남기고, 진짜 미해결만 `unresolved` 로 올린다. 이 표가 PR 확인 포인트의 재료다.
 
 ### pr  (`phase: pr`)
 1. `git push -u origin <branch>`.
 2. `Skill(skill: "ha-skills:pr")` 로 draft PR 을 만든다. 넘길 정보: 이슈 번호(마지막 몫이면 `Closes #$issue`, 아니면 `Refs #$issue` 와 "PR <label>/<몫 수>"), 계획서 경로, verify 결과 파일 경로, `unresolved`(있으면 "확인 포인트"에 적는다). 제목은 project.md 의 이슈 제목 규칙을 따른다. PR URL 을 `gh pr view --json url -q .url` 로 확인해 상태 파일 `pr`(분할이면 `parts[].pr`)에 기록.
-3. **Codex 리뷰.** worktree 에서 `codex review --base origin/$base > $runs/codex-review-<part>.md 2>&1` (타임아웃 10분). 종료 코드 0 이고 본문이 비어 있지 않으면 머리말 "Codex 자동 리뷰(`codex review --base origin/$base`, 기준: AGENTS.md)" 를 붙여 `gh pr comment <pr> --body-file` 로 게시. 실패하면 게시하지 않고 PR 본문 끝에 "Codex 리뷰 실행 실패: <이유 한 줄>" 을 `gh pr edit --body` 로 덧붙인다.
+3. **Codex 리뷰.** worktree 에서 `codex review --base origin/$base > $runs/codex-review-<part>.md 2>&1` (타임아웃 10분, 백그라운드 가능). 출력에는 진행 로그(수백 KB)가 섞여 있다 — **마지막 `\ncodex\n` 마커 뒤의 본문만** 뽑아(`$runs/codex-review-<part>-final.md`) 머리말 "Codex 자동 리뷰(`codex review --base origin/$base`, 기준: 레포 루트 AGENTS.md)" 를 붙여 `gh pr comment <pr> --body-file` 로 게시. AGENTS.md 는 worktree 에 없어도 Codex 가 상위 디렉터리에서 읽는다. Codex 가 실제 결함(P1/P2)을 찾았고 수정이 한두 줄이면 메인이 바로 고쳐 테스트·커밋·푸시하고 댓글에 "커밋 <sha> 에서 반영" 을 적는다; 그 밖은 사용자의 `/autofix-pr` 몫이다. 실패하면 게시하지 않고 PR 본문 끝에 "Codex 리뷰 실행 실패: <이유 한 줄>" 을 `gh pr edit --body` 로 덧붙인다.
 4. 사용자에게 알린다(한 문단): PR 주소, verify·review 결과 한 줄, 그리고 **"이 PR 에 대해 `/autofix-pr` 을 직접 입력해 주세요. 이 명령은 자동화에서 호출할 수 없어 사람이 한 번 실행해야 합니다."**
 5. 다음 몫이 남아 있으면 `part` 를 다음으로, `worktree`/`branch` 를 비우고 `loops` 를 0 으로 → `phase: impl`. 남은 몫이 없으면 → `phase: awaiting-merge-approval`.
 
