@@ -14,13 +14,21 @@
 | pr | `Skill ha-skills:pr` → `codex review --base origin/<기본>` | 브랜치 | draft PR, `<runs>/codex-review-<part>.md` → `gh pr comment` | PR URL | codex 실패 시 PR 본문에 기록 |
 | autofix | **사용자** | — | — | — | "`/autofix-pr` 입력하세요" 안내 후 다음 PR 몫 또는 대기 |
 | GATE 2 (3차) | `/loop` + 사용자 | PR | 알림 → 머지 승인 | `gh pr view --json reviewDecision` = APPROVED && `gh pr checks --json bucket` 전부 pass | 세션 생존 필요 |
-| close (3차) | 메인 + `ha-skills:explain-diff-html` | 머지 PR, 계획서, 이슈 | `<보고서 위치>/YYYY-MM-DD-issue-N.html`, 이슈 댓글, close | 댓글에 PR·보고서 경로·요약 | 보고서 실패는 로그만, close 는 진행 |
+| close (3차) | 메인 + `ha-skills:explain-diff-html` | 머지 PR, 계획서, 이슈 | `<보고서 위치>/YYYY-MM-DD-issue-N.html`, 이슈 댓글, close | 댓글에 PR·보고서 경로·요약 + 산출물 문서(아래 "종료 댓글") | 보고서 실패는 로그만, close 는 진행 |
 
 `<runs>` = `~/issue-runs/<owner>/<repo>/N/` (`gh repo view --json nameWithOwner` 기준, 레포 밖). `<계획서 위치>` 는 project.md 에 적힌 레포 상대 경로, 없으면 `<runs>`.
 
 ## 분할 PR
 
 계획서가 PR 을 나눴으면(예: "PR-A = T1–T6, PR-B = T7–T8") 상태 파일 `parts` 에 `[{"label":"A","tasks":"T1–T6","branch":null,"pr":null,"done":false}, …]` 로 적고, **PR 몫 하나씩** impl→verify→review→pr 을 돈다. 각 몫은 기본 브랜치에서 새로 분기한다(앞 몫에 의존한다고 계획서가 명시한 경우만 앞 몫 브랜치에서 분기). 마지막 몫의 PR 본문만 `Closes #N`, 나머지는 `Refs #N`.
+
+## 종료 댓글 — 산출물 문서를 이슈에 남긴다
+
+close 때 이슈를 닫기 **전에**, 이 실행이 만든 분석·계획·심사 문서를 이슈 댓글로 게시한다. 문서가 레포 밖(`<runs>`)에 있어 다른 사람은 경로로 볼 수 없기 때문이다.
+
+- 댓글 **하나**에 `<details><summary>문서 이름</summary>` 접기 3개로: ① triage(`triage.md`) ② 계획서 최종본 ③ 계획 심사 마지막 라운드(`plan-review-<n>.md`). 머리말 한 줄: "issue-run 이 이 이슈를 처리하며 작성한 문서입니다."
+- `gh issue comment N --body-file` 로 게시. 합쳐서 GitHub 댓글 한도(약 65,000자)에 걸리면 문서별로 나눠 여러 댓글로.
+- 게시는 GATE 2(머지 승인) 뒤의 close 단계에서만 한다 — GitHub 쓰기는 게이트 승인 뒤라는 불변 규칙 그대로.
 
 ## 핸드오프 파일 규칙
 
