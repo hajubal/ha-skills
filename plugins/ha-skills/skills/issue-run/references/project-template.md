@@ -1,13 +1,13 @@
 # <제품 이름> — issue-run 프로젝트 전제
 
-대상 레포의 `.claude/issue-run/project.md` 로 복사해 채운다. `/ha-skills:issue-run` 과 그 에이전트(issue-triage, plan-writer, plan-reviewer, verifier)가 시작할 때 읽는다. 이 파일이 없으면 스킬은 기본값(기본 브랜치 = `gh repo view` 결과, 계획서 위치 `docs/temp/`, 검증 명령 없음)으로 돌고, verify 단계가 "실행할 명령이 없다"고 보고한다.
+대상 레포의 `.claude/issue-run/project.md` 로 복사해 채운다. `/ha-skills:issue-run` 과 그 에이전트(issue-triage, plan-writer, plan-reviewer, verifier)가 시작할 때 읽는다. 이 파일이 없어도 스킬은 돈다 — 기본값은 기본 브랜치 = `gh repo view` 결과, 계획서는 레포 밖 `~/issue-runs/<owner>/<repo>/<N>/` 에, 검증 명령은 계획서 태스크의 `검증:` 과 매니페스트에서 추정. 제품 전제가 없으니 심사·검증의 깊이가 얕아진다. 레포의 본체 루트에서 읽으므로 worktree 로 분기한 브랜치에 아직 없어도 된다.
 
 ## 설정
 
 - 기본 브랜치: `<develop | main>` (PR 대상)
 - 브랜치 이름 접두사: `<user>/`
-- 계획서 위치: `docs/temp/`
-- 산출물 보고서 위치: `~/<repo>-reports/`
+- 계획서 위치: `docs/temp/` (레포 상대 경로. 비우면 레포 밖 산출물 디렉터리에 쓴다)
+- 산출물 보고서 위치: (비우면 `~/issue-runs/<owner>/<repo>/<N>/`)
 - 이슈 생성: `<스크립트 또는 gh issue create 규칙>`
 - 커밋 메시지: `<형식>`
 

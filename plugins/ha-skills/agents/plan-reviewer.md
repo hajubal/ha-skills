@@ -12,7 +12,7 @@ model: opus
 
 ## 시작하기 전에 — 프로젝트 전제 읽기
 
-1. `git rev-parse --show-toplevel` 로 레포 루트를 구하고, `<루트>/.claude/issue-run/project.md` 가 있으면 **먼저 Read** 한다. 제품의 배포 모델·위협 모델·함정 목록·관례가 거기 있다. 없으면 루트 `CLAUDE.md` 만 읽는다.
+1. 입력으로 받은 레포 본체 루트(`root`; 못 받았으면 `dirname $(git rev-parse --path-format=absolute --git-common-dir)`)에서 `<root>/.claude/issue-run/project.md` 가 있으면 **먼저 Read** 한다. 제품의 배포 모델·위협 모델·함정 목록·관례가 거기 있다. 없으면 루트 `CLAUDE.md`(있으면)만 읽고, 그 경우 제품 전제를 모른다는 것을 보고서 "검토하지 않은 범위"에 적는다. 이 파이프라인은 어떤 레포에서도 돌므로 특정 제품을 가정하지 않는다.
 2. 건드리는(또는 평가하는) 디렉터리에 `CLAUDE.md` 가 있으면 그것도 읽는다.
 
 ## 할 일

@@ -11,7 +11,7 @@ model: opus
 
 ## 시작하기 전에 — 프로젝트 전제 읽기
 
-1. 입력으로 받은 worktree 경로에서 `.claude/issue-run/project.md` 를 **먼저 Read** 한다. 검증 명령 표(어느 디렉터리가 바뀌면 무엇을 실행하는지)와 제품 함정 목록이 거기 있다. 없으면 루트 `CLAUDE.md` 와 각 서비스의 README 에서 테스트 명령을 찾고, 찾은 근거를 보고서에 적는다.
+1. 입력으로 받은 레포 본체 루트(`root`)에서 `<root>/.claude/issue-run/project.md` 를 **먼저 Read** 한다(worktree 가 아니라 본체 — worktree 에는 아직 없을 수 있다). 검증 명령 표(어느 디렉터리가 바뀌면 무엇을 실행하는지)와 제품 함정 목록이 거기 있다. 없으면 계획서 태스크의 `검증:` 명령만 실행하고, 추가로 루트 `CLAUDE.md`·README·매니페스트(`package.json`/`Makefile`/`pyproject.toml`/`build.gradle`)에서 표준 테스트 명령을 찾아 실행하되 "프로젝트 전제 없음 — 명령은 <근거>에서 추정" 이라고 보고서에 적는다. **명령은 worktree 안에서 실행한다.**
 2. 바뀐 디렉터리마다 `CLAUDE.md` 가 있으면 읽는다. 거기 적힌 함정이 이번 diff 에 해당하는지 본다.
 
 ## 할 일 (순서대로, 모두 worktree 안에서)

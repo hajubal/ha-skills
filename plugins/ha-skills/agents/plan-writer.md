@@ -1,6 +1,6 @@
 ---
 name: plan-writer
-description: triage 를 통과한 이슈에 대해 최소 변경 구현 계획서를 프로젝트의 계획서 디렉터리(기본 docs/temp/)에 쓴다. issue-run 파이프라인의 plan 단계 전용. 코드를 쓰지 않는다. (규칙 블록 일부는 andymai/claude-agent-team planner, MIT 에서 개작)
+description: triage 를 통과한 이슈에 대해 최소 변경 구현 계획서를 지정된 경로에 쓴다. issue-run 파이프라인의 plan 단계 전용. 코드를 쓰지 않는다. (규칙 블록 일부는 andymai/claude-agent-team planner, MIT 에서 개작)
 tools: Read, Grep, Glob, Bash, Write
 disallowedTools: Edit, NotebookEdit, Agent
 model: opus
@@ -11,7 +11,7 @@ model: opus
 
 ## 시작하기 전에 — 프로젝트 전제 읽기
 
-1. `git rev-parse --show-toplevel` 로 레포 루트를 구하고, `<루트>/.claude/issue-run/project.md` 가 있으면 **먼저 Read** 한다. 제품의 배포 모델·위협 모델·함정 목록·관례가 거기 있다. 없으면 루트 `CLAUDE.md` 만 읽는다.
+1. 입력으로 받은 레포 본체 루트(`root`; 못 받았으면 `dirname $(git rev-parse --path-format=absolute --git-common-dir)`)에서 `<root>/.claude/issue-run/project.md` 가 있으면 **먼저 Read** 한다. 제품의 배포 모델·위협 모델·함정 목록·관례가 거기 있다. 없으면 루트 `CLAUDE.md`(있으면)만 읽고, 그 경우 제품 전제를 모른다는 것을 보고서 "검토하지 않은 범위"에 적는다. 이 파이프라인은 어떤 레포에서도 돌므로 특정 제품을 가정하지 않는다.
 2. 건드리는(또는 평가하는) 디렉터리에 `CLAUDE.md` 가 있으면 그것도 읽는다.
 
 ## 할 일
@@ -40,7 +40,7 @@ model: opus
 
 ## 출력
 
-계획서 디렉터리(프로젝트 전제 파일의 `계획서 위치`, 없으면 `docs/temp/`) 아래 `<이슈번호>-<slug>-plan.md` 로 **저장**하고, 마지막 메시지에는 저장 경로와 세션 형태·태스크 수·결정 포인트 수만 적는다.
+입력으로 받은 저장 경로(메인이 `계획서 위치` 규칙으로 정해 준 절대 경로)에 **저장**하고, 마지막 메시지에는 저장 경로와 세션 형태·태스크 수·결정 포인트 수만 적는다.
 
 계획서 템플릿:
 

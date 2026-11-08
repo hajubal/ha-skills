@@ -16,7 +16,7 @@
 | GATE 2 (3차) | `/loop` + 사용자 | PR | 알림 → 머지 승인 | `gh pr view --json reviewDecision` = APPROVED && `gh pr checks --json bucket` 전부 pass | 세션 생존 필요 |
 | close (3차) | 메인 + `ha-skills:explain-diff-html` | 머지 PR, 계획서, 이슈 | `<보고서 위치>/YYYY-MM-DD-issue-N.html`, 이슈 댓글, close | 댓글에 PR·보고서 경로·요약 | 보고서 실패는 로그만, close 는 진행 |
 
-`<runs>` = `~/issue-runs/<레포 이름>/N/`.
+`<runs>` = `~/issue-runs/<owner>/<repo>/N/` (`gh repo view --json nameWithOwner` 기준, 레포 밖). `<계획서 위치>` 는 project.md 에 적힌 레포 상대 경로, 없으면 `<runs>`.
 
 ## 분할 PR
 
