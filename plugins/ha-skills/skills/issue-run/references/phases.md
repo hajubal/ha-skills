@@ -18,6 +18,15 @@
 
 `<runs>` = `~/issue-runs/<owner>/<repo>/N/` (`gh repo view --json nameWithOwner` 기준, 레포 밖). `<계획서 위치>` 는 project.md 에 적힌 레포 상대 경로, 없으면 `<runs>`.
 
+## 경량 경로 (lane: fast)
+
+triage 가 복잡도를 `단순`(프로덕션 로직 비변경 — 문서·주석, 내용 그대로의 이동·이름변경, 설정 오타, 단언을 바꾸지 않는 테스트 정리)으로 판정하고 사용자가 GATE 1 에서 경량을 승인하면:
+
+- **생략**: plan-writer, plan-reviewer, verifier, code-review 루프, Codex 리뷰.
+- **대신**: 메인이 `<runs>/plan-lite.md`(변경 파일 목록 + 검증 명령, 5줄 안팎)를 쓰고, 구현 후 검증 명령을 **직접 실행**한다. 검증 명령은 경량에서도 생략하지 않는다 — 폴더 재구성이 import 를 깨뜨리는 걸 잡는 유일한 그물이다.
+- **승격**: 구현 중 plan-lite 의 파일 목록 밖을 건드려야 하거나 로직 수정이 필요해지면 멈추고 정식 경로(`phase: plan`)로 돌아간다.
+- GATE 1·draft PR·GATE 2·close 는 정식 경로와 동일. PR 본문에 경량 경로였음을 적는다.
+
 ## 분할 PR
 
 계획서가 PR 을 나눴으면(예: "PR-A = T1–T6, PR-B = T7–T8") 상태 파일 `parts` 에 `[{"label":"A","tasks":"T1–T6","branch":null,"pr":null,"done":false}, …]` 로 적고, **PR 몫 하나씩** impl→verify→review→pr 을 돈다. 각 몫은 기본 브랜치에서 새로 분기한다(앞 몫에 의존한다고 계획서가 명시한 경우만 앞 몫 브랜치에서 분기). 마지막 몫의 PR 본문만 `Closes #N`, 나머지는 `Refs #N`.

@@ -40,7 +40,7 @@ disable-model-invocation: true
 처음이면 `mkdir -p $runs` 후 생성:
 
 ```json
-{ "issue": $issue, "repo": "<key>", "root": "<root>", "base": "<base>", "phase": "triage",
+{ "issue": $issue, "repo": "<key>", "root": "<root>", "base": "<base>", "phase": "triage", "lane": "full",
   "plan": null, "parts": null, "part": null,
   "worktree": null, "branch": null, "pr": null,
   "loops": {"plan-rev": 0, "verify": 0, "review": 0},
@@ -62,7 +62,8 @@ disable-model-invocation: true
 1. `gh issue view $issue --json state,title` 로 열린 이슈인지 확인. 닫혀 있으면 멈추고 보고.
 2. `Agent(subagent_type: "ha-skills:issue-triage")` 에 다음만 준다: 이슈 번호, `$root`, `$project_md` 절대 경로(없으면 "없음"). 반환 본문을 `$runs/triage.md` 에 **그대로** 저장한다(에이전트는 Write 가 없다).
 3. 판정을 읽는다.
-   - `진행` → `phase: plan`.
+   - `진행` + 복잡도 `단순` → **경량 경로 후보.** plan·plan-rev 를 건너뛴다: 메인이 `$runs/plan-lite.md` 를 직접 쓴다(서브에이전트 없이, 5줄 안팎 — triage 의 예상 변경 파일 목록 그대로, 파일별 바꿀 내용 한 줄, 실행할 검증 명령). 상태 파일 `plan` 에 그 경로를 적고 `phase: awaiting-plan-approval`.
+   - `진행`(복잡도 `일반`) → `phase: plan`.
    - `보류`/`닫기` → `phase: awaiting-plan-approval` 로 바로 가서 GATE 1 에서 사용자가 결정한다(계획은 쓰지 않는다). 사용자가 "범위를 바꿔 진행"을 고르면 결정을 `$runs/user-decisions.md` 에 적고 `phase: plan` 으로 — 이 경로에서는 GATE 1 이 **두 번** 열린다(한 번은 진행 여부, 한 번은 계획 승인).
 
 ### plan  (`phase: plan`)
@@ -83,6 +84,8 @@ disable-model-invocation: true
 - **정정안 초안 전문**(triage 의 사실·범위 정정을 요약한 3–8줄) — 승인 후 이슈 댓글로 그대로 게시될 글이므로 요약이 아니라 본문을 보여 준다.
 - 사용자가 정해야 할 **결정 포인트 목록**(각 권장값과 그 이유 한 줄).
 
+**경량 경로 후보면**(triage 복잡도 `단순`): 계획서·심사 요약 대신 `plan-lite.md` 전문(5줄 안팎)과 triage 가 "왜 단순"이라 봤는지를 보여 주고, 첫 두 선택지를 `경량 경로로 승인 — 계획 심사·검증자·코드 리뷰·Codex 를 생략하고, 구현 후 검증 명령만 돌려 draft PR 을 만든다` / `정식 경로로 진행 — 계획서를 쓰고 전체 절차를 돈다` 로 바꾼다(보류·닫기는 그대로). 경량 승인 → `lane: "fast"` 를 기록하고 아래 "승인" 처리와 동일하게 진행. 정식 선택 → `lane: "full"`, `phase: plan`.
+
 그다음 `AskUserQuestion` 한 번:
 - `승인 — 구현을 시작하고 draft PR 까지 자동으로 만든다` / `수정 지시 — 계획서를 고친 뒤 다시 보여 준다` / `보류 — 여기서 멈추고 나중에 재개한다` / `닫기 — 이슈를 닫는다`
 - 결정 포인트가 있으면 같은 호출에 질문으로 함께 묻는다(최대 4개, 넘으면 중요한 순). 선택지마다 그걸 고르면 무엇이 달라지는지 한 줄.
@@ -101,10 +104,12 @@ disable-model-invocation: true
    - 테스트는 계획서가 지정한 파일·케이스를 추가한다. 기존 테스트의 단언을 지우거나 비활성화하지 않는다.
    - 태스크마다 계획서의 `검증:` 명령을 실행해 통과를 본 뒤 **태스크 단위로 커밋**한다. 메시지 형식은 project.md 를 따른다.
    - 계획서가 Spike(확인 후 결정) 를 남겼으면 그 자리에서 확인하고 결과를 계획서의 자리표시자에 채워 넣는다(계획서 수정 커밋 포함).
+   - **경량 경로 승격:** `lane: "fast"` 인데 `plan-lite.md` 의 파일 목록 밖을 건드려야 하거나 프로덕션 로직 수정이 필요해지면 멈춘다 — 사용자에게 알리고 `lane: "full"`, `phase: plan` 으로 돌아간다(worktree 는 유지, 한 일은 커밋해 둔다).
    - 막히면(계획서와 코드가 다름, 계획대로 하면 테스트가 깨짐) 임의로 설계를 바꾸지 말고 `AskUserQuestion` 으로 묻는다. 질문에는 "계획서는 A 라고 했는데 코드는 B 다. 선택지 1/2 를 고르면 각각 이렇게 된다"를 쓴다.
 3. 끝나면 `git status --short` 가 비어 있는지 확인(남은 변경은 커밋하거나 버린다). → `phase: verify`.
 
 ### verify  (`phase: verify`, 몫당 최대 2회)
+`lane: "fast"` 면 verifier 를 띄우지 않는다: 메인이 `$project_md` 의 검증 명령(없으면 plan-lite 의 명령)을 직접 실행한다. 전부 exit 0 → `phase: pr`(review 생략). 실패 → 고치고 재실행(최대 2회), 그래도 실패면 아래 4 의 질문으로. 정식 경로는:
 1. `loops.verify += 1`. `Agent(subagent_type: "ha-skills:verifier")` 에 준다: worktree 경로, `$root`, `$project_md`(검증 명령 표는 여기), 계획서 경로, 이번 몫 label 과 태스크 범위, `$base`. 2회차면 1회차 verify 파일 경로도. 결과를 `$runs/verify-<part>-<n>.md` 에 저장.
 2. `PASS` → `loops.verify = 0`, `phase: review`.
 3. `FAIL` 이고 `loops.verify < 2` → "구현자에게" 목록을 메인이 ponytail 로 고치고(원인 분석 → 최소 수정 → 해당 검증 명령 재실행 → 커밋) 1 로.
@@ -118,7 +123,7 @@ disable-model-invocation: true
 ### pr  (`phase: pr`)
 1. `git push -u origin <branch>`.
 2. `Skill(skill: "ha-skills:pr")` 로 draft PR 을 만든다. 넘길 정보: 이슈 번호(마지막 몫이면 `Closes #$issue`, 아니면 `Refs #$issue` 와 "PR <label>/<몫 수>"), 계획서 경로, verify 결과 파일 경로, `unresolved`(있으면 "확인 포인트"에 적는다). 제목은 project.md 의 이슈 제목 규칙을 따른다. PR URL 을 `gh pr view --json url -q .url` 로 확인해 상태 파일 `pr`(분할이면 `parts[].pr`)에 기록.
-3. **Codex 리뷰.** Codex 는 worktree 루트(와 상위 디렉터리)의 `AGENTS.md` 를 기준으로 삼는다. 레포에 없고 `${CLAUDE_PLUGIN_ROOT}/projects/$key/AGENTS.md` 가 있으면 **worktree 루트에 복사해 두고(untracked, 절대 `git add` 하지 않는다 — 커밋은 항상 파일을 지정해서)** 리뷰가 끝나면 `rm` 한다. 그다음 worktree 에서 `codex review --base origin/$base > $runs/codex-review-<part>.md 2>&1` (타임아웃 10분, 백그라운드 가능). 출력에는 진행 로그(수백 KB)가 섞여 있다 — **마지막 `\ncodex\n` 마커 뒤의 본문만** 뽑아(`$runs/codex-review-<part>-final.md`) 머리말 "Codex 자동 리뷰(`codex review --base origin/$base`, 기준: 레포 루트 AGENTS.md)" 를 붙여 `gh pr comment <pr> --body-file` 로 게시. AGENTS.md 는 worktree 에 없어도 Codex 가 상위 디렉터리에서 읽는다. Codex 가 실제 결함(P1/P2)을 찾았고 수정이 한두 줄이면 메인이 바로 고쳐 테스트·커밋·푸시하고 댓글에 "커밋 <sha> 에서 반영" 을 적는다; 그 밖은 사용자의 `/autofix-pr` 몫이다. 실패하면 게시하지 않고 PR 본문 끝에 "Codex 리뷰 실행 실패: <이유 한 줄>" 을 `gh pr edit --body` 로 덧붙인다.
+3. **Codex 리뷰.** `lane: "fast"` 면 생략하고 PR 본문에 "경량 경로로 처리(계획 심사·검증자·코드 리뷰·Codex 생략, 검증 명령은 실행)" 를 적는다. Codex 는 worktree 루트(와 상위 디렉터리)의 `AGENTS.md` 를 기준으로 삼는다. 레포에 없고 `${CLAUDE_PLUGIN_ROOT}/projects/$key/AGENTS.md` 가 있으면 **worktree 루트에 복사해 두고(untracked, 절대 `git add` 하지 않는다 — 커밋은 항상 파일을 지정해서)** 리뷰가 끝나면 `rm` 한다. 그다음 worktree 에서 `codex review --base origin/$base > $runs/codex-review-<part>.md 2>&1` (타임아웃 10분, 백그라운드 가능). 출력에는 진행 로그(수백 KB)가 섞여 있다 — **마지막 `\ncodex\n` 마커 뒤의 본문만** 뽑아(`$runs/codex-review-<part>-final.md`) 머리말 "Codex 자동 리뷰(`codex review --base origin/$base`, 기준: 레포 루트 AGENTS.md)" 를 붙여 `gh pr comment <pr> --body-file` 로 게시. AGENTS.md 는 worktree 에 없어도 Codex 가 상위 디렉터리에서 읽는다. Codex 가 실제 결함(P1/P2)을 찾았고 수정이 한두 줄이면 메인이 바로 고쳐 테스트·커밋·푸시하고 댓글에 "커밋 <sha> 에서 반영" 을 적는다; 그 밖은 사용자의 `/autofix-pr` 몫이다. 실패하면 게시하지 않고 PR 본문 끝에 "Codex 리뷰 실행 실패: <이유 한 줄>" 을 `gh pr edit --body` 로 덧붙인다.
 4. 사용자에게 알린다(한 문단): PR 주소, verify·review 결과 한 줄, 그리고 **"이 PR 에 대해 `/autofix-pr` 을 직접 입력해 주세요. 이 명령은 자동화에서 호출할 수 없어 사람이 한 번 실행해야 합니다."**
 5. 다음 몫이 남아 있으면 `part` 를 다음으로, `worktree`/`branch` 를 비우고 `loops` 를 0 으로 → `phase: impl`. 남은 몫이 없으면 → `phase: awaiting-merge-approval`.
 
