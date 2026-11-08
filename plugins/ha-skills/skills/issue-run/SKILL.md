@@ -9,7 +9,7 @@ disable-model-invocation: true
 # /ha-skills:issue-run $issue $action
 
 이슈 **#$issue** 를 처리한다. 동작: `$action` (비어 있으면 `resume` 과 같다 — 상태 파일이 없으면 처음부터, 있으면 `phase` 에서 이어간다).
-단계별 계약은 `references/phases.md`, 프로젝트별 설정·전제·검증 명령은 대상 레포의 `.claude/issue-run/project.md`(없으면 `references/project-template.md` 를 안내하고 기본값으로 진행). 이 문서는 **메인 컨텍스트에서** 실행한다 — 게이트 질문(`AskUserQuestion`)은 서브에이전트가 못 하기 때문이다.
+단계별 계약은 `references/phases.md`, 프로젝트별 설정·전제·검증 명령은 아래 `$project_md`(레포 안 또는 플러그인 `projects/<owner>/<repo>/`). 이 문서는 **메인 컨텍스트에서** 실행한다 — 게이트 질문(`AskUserQuestion`)은 서브에이전트가 못 하기 때문이다.
 
 ## 어느 레포를 다루는가 — 시작할 때 한 번 구한다
 
@@ -17,11 +17,12 @@ disable-model-invocation: true
 
 - `root` = `dirname $(git rev-parse --path-format=absolute --git-common-dir)` — 레포의 본체 루트. worktree(`.claude/worktrees/…`) 안에서 실행해도 같은 값이 나온다. 이 명령이 실패하면(git 레포가 아님) "git 레포 안에서 실행해 주세요" 라고 알리고 멈춘다.
 - `key` = `gh repo view --json nameWithOwner -q .nameWithOwner` (예: `ininext/sgt`). 실패하면 `git remote get-url origin` 에서 마지막 두 경로 조각(`.git` 제거). 그것도 없으면 `basename $root`. 상태·산출물을 레포별로 격리하는 열쇠다 — 이름이 같은 레포가 다른 조직에 있어도 섞이지 않는다.
-- `base` = `$root/.claude/issue-run/project.md` 의 `기본 브랜치`, 없으면 `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+- `project_md` = 다음 중 **처음 존재하는 것**: ① `$root/.claude/issue-run/project.md`(팀이 레포에 공식으로 둔 경우) ② `${CLAUDE_PLUGIN_ROOT}/projects/$key/project.md`(개인 설정 — 이 플러그인 저장소의 `plugins/ha-skills/projects/<owner>/<repo>/` 에 두면 플러그인과 함께 모든 장비에 배포된다). 둘 다 없으면 `references/project-template.md` 를 안내하고 기본값으로 진행. 서브에이전트에는 이 **절대 경로**를 넘긴다 — 팀 공용 레포에 개인 스킬용 파일을 커밋하지 않기 위한 장치다.
+- `base` = `$project_md` 의 `기본 브랜치`, 없으면 `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 - `runs` = `~/issue-runs/$key/$issue/`, 상태 파일 = `~/issue-runs/$key/$issue.json`. 레포 밖에 두므로 레포에 흔적을 남기지 않는다.
-- `plan_dir` = project.md 의 `계획서 위치`(레포 상대 경로, 예: `docs/temp/`). **없으면 `$runs/`** — 레포에 계획서 관례가 없으면 레포 안에 파일을 만들지 않는다.
+- `plan_dir` = `$project_md` 의 `계획서 위치`(레포 상대 경로, 예: `docs/temp/`). **비어 있거나 없으면 `$runs/`** — 레포에 계획서 관례가 없거나 개인 작업이면 레포 안에 파일을 만들지 않는다.
 
-project.md 는 **항상 `$root`(본체) 에서** 읽는다. worktree 는 기본 브랜치에서 분기하므로, 아직 머지되지 않은 project.md 가 worktree 에는 없을 수 있다. 서브에이전트에도 `$root` 경로를 넘겨 같은 파일을 읽게 한다.
+`$project_md` 는 레포 안 경로(①)일 때도 **항상 `$root`(본체) 기준**으로 읽는다. worktree 는 기본 브랜치에서 분기하므로 아직 머지되지 않은 파일이 worktree 에는 없을 수 있다.
 
 ## 불변 규칙
 
@@ -59,17 +60,17 @@ project.md 는 **항상 `$root`(본체) 에서** 읽는다. worktree 는 기본 
 
 ### triage  (`phase: triage`)
 1. `gh issue view $issue --json state,title` 로 열린 이슈인지 확인. 닫혀 있으면 멈추고 보고.
-2. `Agent(subagent_type: "ha-skills:issue-triage")` 에 다음만 준다: 이슈 번호, `$root`(프로젝트 전제 파일을 여기서 읽으라고 명시). 반환 본문을 `$runs/triage.md` 에 **그대로** 저장한다(에이전트는 Write 가 없다).
+2. `Agent(subagent_type: "ha-skills:issue-triage")` 에 다음만 준다: 이슈 번호, `$root`, `$project_md` 절대 경로(없으면 "없음"). 반환 본문을 `$runs/triage.md` 에 **그대로** 저장한다(에이전트는 Write 가 없다).
 3. 판정을 읽는다.
    - `진행` → `phase: plan`.
    - `보류`/`닫기` → `phase: awaiting-plan-approval` 로 바로 가서 GATE 1 에서 사용자가 결정한다(계획은 쓰지 않는다). 사용자가 "범위를 바꿔 진행"을 고르면 결정을 `$runs/user-decisions.md` 에 적고 `phase: plan` 으로 — 이 경로에서는 GATE 1 이 **두 번** 열린다(한 번은 진행 여부, 한 번은 계획 승인).
 
 ### plan  (`phase: plan`)
-1. `Agent(subagent_type: "ha-skills:plan-writer")` 에 준다: 이슈 번호, `$root`, `$runs/triage.md` 경로, 있으면 `$runs/user-decisions.md` 경로, 저장 위치(`$plan_dir/$issue-<slug>-plan.md` 를 절대 경로로).
+1. `Agent(subagent_type: "ha-skills:plan-writer")` 에 준다: 이슈 번호, `$root`, `$project_md`, `$runs/triage.md` 경로, 있으면 `$runs/user-decisions.md` 경로, 저장 위치(`$plan_dir/$issue-<slug>-plan.md` 를 절대 경로로).
 2. 반환된 저장 경로를 상태 파일 `plan` 에 기록. 파일이 실제로 있는지 `ls` 로 확인. → `phase: plan-rev`.
 
 ### plan-rev  (`phase: plan-rev`, 최대 2회)
-1. `loops.plan-rev += 1`. `Agent(subagent_type: "ha-skills:plan-reviewer")` 에 **계획서 경로·이슈 번호·`$root` 만** 준다(2회차면 1회차 리뷰 파일 경로도 — 수렴 판정용). 결과를 `$runs/plan-review-<n>.md` 에 저장.
+1. `loops.plan-rev += 1`. `Agent(subagent_type: "ha-skills:plan-reviewer")` 에 **계획서 경로·이슈 번호·`$root`·`$project_md` 만** 준다(2회차면 1회차 리뷰 파일 경로도 — 수렴 판정용). 결과를 `$runs/plan-review-<n>.md` 에 저장.
 2. 판정 `승인` → `phase: awaiting-plan-approval`.
 3. `수정 필요` 이고 `loops.plan-rev < 2` → `Agent(subagent_type: "ha-skills:plan-writer")` 에 계획서 경로 + 리뷰 파일 경로를 주고 **Blocker/Important 만 반영해 같은 파일을 갱신**하게 한 뒤 1 로.
 4. 2회째도 `수정 필요`, 또는 2회의 Blocker 목록이 동일(수렴) → 잔여 지적을 `unresolved` 에 넣고 `phase: awaiting-plan-approval`.
@@ -103,7 +104,7 @@ project.md 는 **항상 `$root`(본체) 에서** 읽는다. worktree 는 기본 
 3. 끝나면 `git status --short` 가 비어 있는지 확인(남은 변경은 커밋하거나 버린다). → `phase: verify`.
 
 ### verify  (`phase: verify`, 몫당 최대 2회)
-1. `loops.verify += 1`. `Agent(subagent_type: "ha-skills:verifier")` 에 준다: worktree 경로, `$root`(프로젝트 전제·검증 명령은 여기서 읽는다), 계획서 경로, 이번 몫 label 과 태스크 범위, `$base`. 2회차면 1회차 verify 파일 경로도. 결과를 `$runs/verify-<part>-<n>.md` 에 저장.
+1. `loops.verify += 1`. `Agent(subagent_type: "ha-skills:verifier")` 에 준다: worktree 경로, `$root`, `$project_md`(검증 명령 표는 여기), 계획서 경로, 이번 몫 label 과 태스크 범위, `$base`. 2회차면 1회차 verify 파일 경로도. 결과를 `$runs/verify-<part>-<n>.md` 에 저장.
 2. `PASS` → `loops.verify = 0`, `phase: review`.
 3. `FAIL` 이고 `loops.verify < 2` → "구현자에게" 목록을 메인이 ponytail 로 고치고(원인 분석 → 최소 수정 → 해당 검증 명령 재실행 → 커밋) 1 로.
 4. 2회째도 `FAIL` → 멈추고 `AskUserQuestion`: 남은 실패를 요약하고 `한 번 더 고친다(실패 목록을 보여 주고 지시를 받는다)` / `이대로 PR 을 만든다(실패를 PR 본문에 적는다)` / `보류`. 선택대로 진행.
@@ -116,7 +117,7 @@ project.md 는 **항상 `$root`(본체) 에서** 읽는다. worktree 는 기본 
 ### pr  (`phase: pr`)
 1. `git push -u origin <branch>`.
 2. `Skill(skill: "ha-skills:pr")` 로 draft PR 을 만든다. 넘길 정보: 이슈 번호(마지막 몫이면 `Closes #$issue`, 아니면 `Refs #$issue` 와 "PR <label>/<몫 수>"), 계획서 경로, verify 결과 파일 경로, `unresolved`(있으면 "확인 포인트"에 적는다). 제목은 project.md 의 이슈 제목 규칙을 따른다. PR URL 을 `gh pr view --json url -q .url` 로 확인해 상태 파일 `pr`(분할이면 `parts[].pr`)에 기록.
-3. **Codex 리뷰.** worktree 에서 `codex review --base origin/$base > $runs/codex-review-<part>.md 2>&1` (타임아웃 10분, 백그라운드 가능). 출력에는 진행 로그(수백 KB)가 섞여 있다 — **마지막 `\ncodex\n` 마커 뒤의 본문만** 뽑아(`$runs/codex-review-<part>-final.md`) 머리말 "Codex 자동 리뷰(`codex review --base origin/$base`, 기준: 레포 루트 AGENTS.md)" 를 붙여 `gh pr comment <pr> --body-file` 로 게시. AGENTS.md 는 worktree 에 없어도 Codex 가 상위 디렉터리에서 읽는다. Codex 가 실제 결함(P1/P2)을 찾았고 수정이 한두 줄이면 메인이 바로 고쳐 테스트·커밋·푸시하고 댓글에 "커밋 <sha> 에서 반영" 을 적는다; 그 밖은 사용자의 `/autofix-pr` 몫이다. 실패하면 게시하지 않고 PR 본문 끝에 "Codex 리뷰 실행 실패: <이유 한 줄>" 을 `gh pr edit --body` 로 덧붙인다.
+3. **Codex 리뷰.** Codex 는 worktree 루트(와 상위 디렉터리)의 `AGENTS.md` 를 기준으로 삼는다. 레포에 없고 `${CLAUDE_PLUGIN_ROOT}/projects/$key/AGENTS.md` 가 있으면 **worktree 루트에 복사해 두고(untracked, 절대 `git add` 하지 않는다 — 커밋은 항상 파일을 지정해서)** 리뷰가 끝나면 `rm` 한다. 그다음 worktree 에서 `codex review --base origin/$base > $runs/codex-review-<part>.md 2>&1` (타임아웃 10분, 백그라운드 가능). 출력에는 진행 로그(수백 KB)가 섞여 있다 — **마지막 `\ncodex\n` 마커 뒤의 본문만** 뽑아(`$runs/codex-review-<part>-final.md`) 머리말 "Codex 자동 리뷰(`codex review --base origin/$base`, 기준: 레포 루트 AGENTS.md)" 를 붙여 `gh pr comment <pr> --body-file` 로 게시. AGENTS.md 는 worktree 에 없어도 Codex 가 상위 디렉터리에서 읽는다. Codex 가 실제 결함(P1/P2)을 찾았고 수정이 한두 줄이면 메인이 바로 고쳐 테스트·커밋·푸시하고 댓글에 "커밋 <sha> 에서 반영" 을 적는다; 그 밖은 사용자의 `/autofix-pr` 몫이다. 실패하면 게시하지 않고 PR 본문 끝에 "Codex 리뷰 실행 실패: <이유 한 줄>" 을 `gh pr edit --body` 로 덧붙인다.
 4. 사용자에게 알린다(한 문단): PR 주소, verify·review 결과 한 줄, 그리고 **"이 PR 에 대해 `/autofix-pr` 을 직접 입력해 주세요. 이 명령은 자동화에서 호출할 수 없어 사람이 한 번 실행해야 합니다."**
 5. 다음 몫이 남아 있으면 `part` 를 다음으로, `worktree`/`branch` 를 비우고 `loops` 를 0 으로 → `phase: impl`. 남은 몫이 없으면 → `phase: awaiting-merge-approval`.
 

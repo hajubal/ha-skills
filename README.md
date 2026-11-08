@@ -46,8 +46,8 @@ claude plugin update ha-skills@ha-skills
 필요한 것: `gh`(로그인 상태), git. 선택: 공식 `code-review` 플러그인(없으면 리뷰 단계를 건너뛰고 PR 본문에 적는다), `codex` CLI + 레포 루트 `AGENTS.md`(없으면 Codex 댓글만 빠진다).
 
 0. project.md 없이도 돈다. 기본 브랜치는 `gh repo view` 결과, 계획서와 모든 산출물은 레포 밖 `~/issue-runs/<owner>/<repo>/<N>/` 에, 검증 명령은 계획서의 태스크별 `검증:` 과 매니페스트(`package.json`/`Makefile`/`pyproject.toml`/`build.gradle`)에서 추정한다. 다만 제품 전제를 모르니 심사·검증이 얕다.
-1. 제대로 쓰려면 대상 레포에 `.claude/issue-run/project.md` 를 만든다. 템플릿은 `plugins/ha-skills/skills/issue-run/references/project-template.md`. 기본 브랜치, 브랜치 접두사, 계획서 위치, 제품 전제(배포 모델·위협 모델·절대 수정 금지 파일), **검증 명령 표**(바뀐 디렉터리 → 실행할 테스트 명령)를 채운다. 이 파일이 없으면 verify 단계가 실행할 명령을 모른다.
-2. Codex 리뷰를 쓰려면 레포 루트에 `AGENTS.md`(Codex 가 읽는 리뷰 기준)를 두고 `codex` CLI 가 설치돼 있어야 한다. 없으면 PR 은 만들어지고 Codex 댓글만 빠진다.
+1. 제대로 쓰려면 프로젝트 전제 파일을 만든다. **팀 공용 레포에 개인 스킬용 파일을 두기 곤란하면 이 저장소의 `plugins/ha-skills/projects/<owner>/<repo>/project.md` 에 둔다**(플러그인에 포함돼 모든 장비에 같이 배포됨, 예: `projects/ininext/sgt/`). 팀이 공식 채택했다면 대상 레포의 `.claude/issue-run/project.md` 에 두어도 되고, 레포 쪽이 우선한다. 템플릿은 `plugins/ha-skills/skills/issue-run/references/project-template.md`. 기본 브랜치, 브랜치 접두사, 계획서 위치, 제품 전제(배포 모델·위협 모델·절대 수정 금지 파일), **검증 명령 표**(바뀐 디렉터리 → 실행할 테스트 명령)를 채운다. 이 파일이 없으면 verify 단계가 실행할 명령을 모른다.
+2. Codex 리뷰를 쓰려면 `codex` CLI 와 리뷰 기준 `AGENTS.md` 가 필요하다. 레포 루트에 없으면 `projects/<owner>/<repo>/AGENTS.md` 를 pr 단계에서 worktree 에 임시 복사했다가 지운다(커밋되지 않음). 둘 다 없으면 PR 은 만들어지고 Codex 댓글만 빠진다.
 3. 상태는 `~/issue-runs/<owner>/<repo>/<이슈번호>.json`, 산출물은 `~/issue-runs/<owner>/<repo>/<이슈번호>/` 에 쌓인다. project.md 는 레포 본체 루트에서 읽으므로 worktree 브랜치에 아직 없어도 된다. 세션이 끊겨도 같은 명령으로 이어진다.
 4. 에이전트 4개(`ha-skills:issue-triage`, `ha-skills:plan-writer`, `ha-skills:plan-reviewer`, `ha-skills:verifier`)는 모두 `model: opus` 다. 전역 `CLAUDE_CODE_SUBAGENT_MODEL` 보다 우선한다.
 5. 플러그인 훅이 입력 대기·권한 요청 때 macOS 알림을 보낸다(`SLACK_WEBHOOK_URL` 이 있으면 Slack 에도). 레포의 `settings.json` 에 같은 훅을 두면 두 번 울린다.
@@ -59,6 +59,7 @@ claude plugin update ha-skills@ha-skills
 plugins/ha-skills/
 ├─ .claude-plugin/plugin.json        플러그인 메타 (name/version/description)
 ├─ agents/                           issue-run 서브에이전트 (issue-triage, plan-writer, plan-reviewer, verifier)
+├─ projects/<owner>/<repo>/          레포별 개인 설정: project.md(전제·검증 명령), AGENTS.md(Codex 기준), plans/(승인된 계획서 보관)
 ├─ hooks/hooks.json                  Notification 훅 (idle_prompt | permission_prompt → scripts/notify.sh)
 ├─ scripts/notify.sh                 macOS 알림 + Slack(선택)
 └─ skills/

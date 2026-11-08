@@ -1,6 +1,6 @@
 # <제품 이름> — issue-run 프로젝트 전제
 
-대상 레포의 `.claude/issue-run/project.md` 로 복사해 채운다. `/ha-skills:issue-run` 과 그 에이전트(issue-triage, plan-writer, plan-reviewer, verifier)가 시작할 때 읽는다. 이 파일이 없어도 스킬은 돈다 — 기본값은 기본 브랜치 = `gh repo view` 결과, 계획서는 레포 밖 `~/issue-runs/<owner>/<repo>/<N>/` 에, 검증 명령은 계획서 태스크의 `검증:` 과 매니페스트에서 추정. 제품 전제가 없으니 심사·검증의 깊이가 얕아진다. 레포의 본체 루트에서 읽으므로 worktree 로 분기한 브랜치에 아직 없어도 된다.
+두 곳 중 하나에 둔다. 팀이 공식 채택했으면 대상 레포의 `.claude/issue-run/project.md`, 개인용이면 이 플러그인 저장소의 `plugins/ha-skills/projects/<owner>/<repo>/project.md`(플러그인과 함께 모든 장비에 배포되고, 팀 레포에는 아무것도 남지 않는다). Codex 리뷰 기준 `AGENTS.md` 도 같은 디렉터리에 두면 pr 단계에서 worktree 에 임시 복사된다. `/ha-skills:issue-run` 과 그 에이전트(issue-triage, plan-writer, plan-reviewer, verifier)가 시작할 때 읽는다. 이 파일이 없어도 스킬은 돈다 — 기본값은 기본 브랜치 = `gh repo view` 결과, 계획서는 레포 밖 `~/issue-runs/<owner>/<repo>/<N>/` 에, 검증 명령은 계획서 태스크의 `검증:` 과 매니페스트에서 추정. 제품 전제가 없으니 심사·검증의 깊이가 얕아진다. 레포의 본체 루트에서 읽으므로 worktree 로 분기한 브랜치에 아직 없어도 된다.
 
 ## 설정
 
