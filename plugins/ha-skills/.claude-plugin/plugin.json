@@ -1,7 +1,7 @@
 {
   "name": "ha-skills",
-  "version": "1.1.0",
-  "description": "PR 본문을 짧게 쓰고 상세 설명은 HTML/코멘트로 분리하는 PR 작성 스킬과, 코드 변경을 배경·직관·워크스루·퀴즈로 풀어내는 심층 설명 스킬.",
+  "version": "1.2.0",
+  "description": "PR 작성·코드 변경 심층 설명(HTML) 스킬과, GitHub 이슈 1건을 triage→계획→심사→승인→구현→검증→리뷰→draft PR 까지 상태 머신으로 처리하는 issue-run 파이프라인(에이전트 4개 + 알림 훅).",
   "author": {
     "name": "hajubal"
   },

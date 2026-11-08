@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "ha-skills",
-      "description": "PR 작성과 코드 변경 심층 설명(HTML) 스킬 모음",
+      "description": "PR 작성, 코드 변경 심층 설명(HTML), 이슈 처리 파이프라인(issue-run) 스킬 모음",
       "author": {
         "name": "hajubal"
       },

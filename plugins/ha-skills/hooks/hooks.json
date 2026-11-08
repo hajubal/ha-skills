@@ -1,0 +1,17 @@
+{
+  "description": "issue-run 이 사람의 결정을 기다리거나 권한을 물을 때 macOS 알림(과 SLACK_WEBHOOK_URL 이 있으면 Slack)으로 부른다.",
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "idle_prompt|permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/notify.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
