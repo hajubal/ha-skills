@@ -33,7 +33,7 @@ claude plugin update ha-skills@ha-skills
 
 | 스킬 | 호출 이름 | 하는 일 |
 |---|---|---|
-| PR 작성 | `ha-skills:pr` | PR 본문은 40줄 이내로 짧게 쓴다. 심층 설명은 요청 시에만 PR 코멘트로 붙인다. 신규 PR은 항상 draft + assignee 본인 + 리뷰 가능한 전원에게 리뷰 요청. |
+| PR 작성 | `ha-skills:pr` | PR 본문은 40줄 이내로 짧게 쓴다. 심층 설명은 요청 시에만 PR 코멘트로 붙인다. 신규 PR은 항상 draft + assignee 본인. 리뷰어는 자동 요청하지 않는다(지정했을 때만). |
 | 심층 설명 | `ha-skills:explain-diff-html` | 코드 변경을 배경 → 직관 → 코드 워크스루 → 퀴즈 순서의 자체 완결형 HTML 한 장으로 만든다. |
 | 이슈 처리 | `/ha-skills:issue-run <번호> [resume\|abort\|status]` | GitHub 이슈 1건을 상태 머신으로 처리한다. 이슈를 코드와 대조(triage) → 계획서 작성 → 계획 심사(최대 2회) → **사용자 승인(GATE 1)** → 구현 → 검증 → `code-review --fix` → draft PR + Codex 리뷰 댓글. 사람은 게이트에서만 개입한다. 머지와 `/autofix-pr` 은 사람이 한다. |
 

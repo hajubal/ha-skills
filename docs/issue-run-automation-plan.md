@@ -26,7 +26,7 @@ GitHub 이슈 1건을 "검토 → 계획 → 구현 → 검증 → PR → 머지
 | D6 | **`/autofix-pr` 은 사용자가 수동 입력**. `claude -p "/autofix-pr"` 불가("isn't available"), `claude --cloud` 는 PR 구독 단계가 없어 대체 불가 | 바이너리 분석: spawn + 서버측 subscribe 2단계 |
 | D7 | 게이트 알림은 모델 판단이 아니라 **`Notification` 훅(`idle_prompt|permission_prompt`)** | 모델이 잊어도 발화 |
 | D8 | 결과 보고서는 `ha-skills:explain-diff-html` 로 **close 단계에서 1회**, 입력 = 이슈 + 승인 계획서 + 최종 diff, 출력 = `~/sgt-reports/` + 이슈 댓글 요약. 실패해도 파이프라인 중단 안 함 | PR 시점 생성은 autofix 이후 diff 와 어긋남 |
-| D9 | PR 생성은 `ha-skills:pr`(draft, collaborator 전원 리뷰 요청) | 사용자 전역 규칙이 이미 반영된 스킬 |
+| D9 | PR 생성은 `ha-skills:pr`(draft, 리뷰어 자동 요청 없음) | 사용자 전역 규칙이 이미 반영된 스킬 |
 | D10 | 페르소나는 "이력서"가 아니라 **4블록 직무기술서**(전제·할 일·기준·출력). 규칙 블록은 andymai/claude-agent-team, obra/superpowers(MIT)에서 발췌·개작 | 범용 역량 나열형(wshobson, VoltAgent)은 행동을 바꾸지 않음 |
 | D11 | 자동 머지 금지. GATE 2 는 알림 후 사용자 승인 | 되돌리기 비싼 행위 |
 | D12 | worktree 는 `EnterWorktree(name)` 그대로 사용 | `gh repo view` 기본 브랜치 = `develop` → `fresh` 모드가 `origin/develop` 에서 분기 (이전 "main 분기" 우려는 오류였음) |
